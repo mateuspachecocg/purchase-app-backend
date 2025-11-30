@@ -1,0 +1,52 @@
+const express = require('express');
+const mongoose = require('mongoose');
+const cors = require('cors');
+const Purchase = require('./models/Purchase');
+require('dotenv').config();
+
+const app = express();
+
+// Middleware
+app.use(cors());
+app.use(express.json());
+
+// Connect to MongoDB
+mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/purchase-manager')
+  .then(() => console.log('MongoDB Connected'))
+  .catch(err => console.log(err));
+
+// --- Routes ---
+
+// GET: Get all purchases
+app.get('/api/purchases', async (req, res) => {
+  try {
+    const purchases = await Purchase.find().sort({ createdAt: -1 });
+    res.json(purchases);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// POST: Create a purchase
+app.post('/api/purchases', async (req, res) => {
+  try {
+    const newPurchase = new Purchase(req.body);
+    const savedPurchase = await newPurchase.save();
+    res.status(201).json(savedPurchase);
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+});
+
+// DELETE: Delete a purchase
+app.delete('/api/purchases/:id', async (req, res) => {
+  try {
+    await Purchase.findByIdAndDelete(req.params.id);
+    res.json({ message: 'Deleted successfully' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
